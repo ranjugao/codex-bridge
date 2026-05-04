@@ -2,6 +2,8 @@
 
 一个轻量的 Obsidian 插件，用本地文件夹把 Obsidian 笔记和 ChatGPT/Codex 工作流连接起来，并支持把当前笔记内容发送到 OpenAI 或其他 OpenAI-compatible API 生成结构化 Markdown 摘要。
 
+> Desktop only: this plugin uses desktop Obsidian APIs and Node crypto support for local hashing.
+
 ## 能做什么
 
 - 从当前笔记导出 ChatGPT 上下文
@@ -164,6 +166,20 @@ _chatgpt_bridge/
 修改逻辑时建议先改 `main.ts`，再同步编译或更新 `main.js`。
 
 最低 Obsidian 版本：`1.5.0`
+
+## 发布到 Obsidian 插件库
+
+发布时需要创建和 `manifest.json` 版本一致的 GitHub Release，例如 `0.4.0`，并把以下文件作为 release assets 上传：
+
+- `main.js`
+- `manifest.json`
+- `styles.css`
+
+仓库根目录还需要保留：
+
+- `README.md`
+- `LICENSE`
+- `versions.json`
 
 ## 注意
 
