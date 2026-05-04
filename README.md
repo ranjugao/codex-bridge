@@ -1,0 +1,144 @@
+# Obsidian ChatGPT Bridge
+
+一个轻量的 Obsidian 插件，用本地文件夹把 Obsidian 笔记和 ChatGPT/Codex 工作流连接起来，并支持把当前笔记内容发送到 OpenAI API 生成结构化 Markdown 摘要。
+
+## 能做什么
+
+- 从当前笔记导出 ChatGPT 上下文
+- 基于当前笔记创建 ChatGPT 请求文件
+- 把 ChatGPT 回复追加回当前笔记
+- 把最新 ChatGPT 回复创建为新笔记
+- 将选中文本或整篇笔记发送到 OpenAI API，总结到 `ChatGPT/YYYY-MM-DD.md`
+- 用 MD5 hash 防止同一段原文重复写入
+- 按关键词自动打标签：`#coding`、`#tiktok`、`#business`、`#ai`
+
+AI 摘要输出格式固定为：
+
+```markdown
+## 问题
+...
+
+## 核心结论
+...
+
+## 可执行步骤
+...
+
+## Tags
+#xxx #xxx
+```
+
+每条摘要前会写入：
+
+```markdown
+<!-- hash: xxxx -->
+```
+
+如果目标文件里已经包含相同 hash，插件会跳过写入。
+
+## 安装
+
+### 手动安装
+
+1. 下载或克隆这个仓库
+2. 在你的 Obsidian vault 里创建插件目录：
+
+```bash
+mkdir -p "/path/to/your/vault/.obsidian/plugins/chatgpt-bridge"
+```
+
+3. 把这些文件复制进去：
+
+```text
+main.js
+manifest.json
+styles.css
+```
+
+4. 重启 Obsidian
+5. 打开 `Settings -> Community plugins`
+6. 关闭 Safe mode 后启用 `ChatGPT Bridge`
+
+最终目录应该像这样：
+
+```text
+your-vault/
+  .obsidian/
+    plugins/
+      chatgpt-bridge/
+        main.js
+        manifest.json
+        styles.css
+```
+
+## 配置 OpenAI API
+
+如果只使用本地文件桥接功能，不需要 OpenAI API key。
+
+如果要使用 AI 摘要：
+
+1. 打开 `Settings -> ChatGPT Bridge`
+2. 在 `OpenAI API key` 填入你的 API key
+3. `OpenAI model` 默认是 `gpt-5.2`，可以按需修改
+
+API key 会保存在当前 vault 的插件本地配置里，不会提交到仓库。
+
+## 使用
+
+打开 Obsidian 命令面板，搜索 `ChatGPT Bridge`。
+
+常用命令：
+
+- `Export active note context`
+  - 把当前笔记上下文导出到 `_chatgpt_bridge/context/`
+- `Create ChatGPT request from active note`
+  - 基于当前笔记创建一个请求文件，方便复制给 ChatGPT/Codex
+- `Append latest bridge reply to active note`
+  - 把 `_chatgpt_bridge/replies/` 里的最新回复追加到当前笔记
+- `Create note from latest bridge reply`
+  - 用最新回复创建一篇新笔记
+- `Open bridge index`
+  - 打开桥接目录说明
+- `AI summarize selection/current note to daily note`
+  - 优先总结当前选中文本；没有选中文本时总结整篇当前笔记
+  - 写入路径：`ChatGPT/YYYY-MM-DD.md`
+  - 文件存在时 append，不存在时 create
+
+## AI 摘要分类规则
+
+插件会根据原文自动追加标签：
+
+| 关键词 | 标签 |
+| --- | --- |
+| `code`、`bug` | `#coding` |
+| `tiktok` | `#tiktok` |
+| `赚钱`、`monetize` | `#business` |
+| 其他内容 | `#ai` |
+
+## 文件桥接目录
+
+插件默认使用：
+
+```text
+_chatgpt_bridge/
+  context/
+  requests/
+  replies/
+  imported/
+```
+
+你可以把 ChatGPT/Codex 的回复保存到 `replies/`，再用命令导入回当前笔记或创建新笔记。
+
+## 开发
+
+当前仓库直接包含 Obsidian 可加载的 `main.js`，以及对应的 `main.ts` 源码。
+
+修改逻辑时建议先改 `main.ts`，再同步编译或更新 `main.js`。
+
+最低 Obsidian 版本：`1.5.0`
+
+## 注意
+
+- 这个插件通过 Obsidian Plugin API 写入文件，使用了 `app.vault.create` 和 `app.vault.modify`
+- AI 摘要会请求 OpenAI API，需要网络连接和有效 API key
+- 不要把 Obsidian 生成的 `data.json` 提交到仓库，因为里面可能包含你的本地设置或 API key

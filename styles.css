@@ -1,0 +1,6 @@
+.chatgpt-bridge-textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  font-family: var(--font-text);
+}
