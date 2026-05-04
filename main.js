@@ -17,7 +17,9 @@ const DEFAULT_SETTINGS = {
   includeBacklinks: true,
   appendHeading: "ChatGPT Response",
   openaiApiKey: "",
-  openaiModel: "gpt-5.2",
+  openaiModel: "gpt-4o-mini",
+  openaiBaseUrl: "https://api.openai.com/v1",
+  openaiApiMode: "chat_completions",
 };
 
 function nowStamp() {
@@ -50,6 +52,11 @@ function todayPath() {
 
 function md5(value) {
   return crypto.createHash("md5").update(value, "utf8").digest("hex");
+}
+
+function joinUrl(baseUrl, path) {
+  const base = (baseUrl || DEFAULT_SETTINGS.openaiBaseUrl).trim().replace(/\/+$/, "");
+  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 function classifyTags(value) {
@@ -443,30 +450,43 @@ module.exports = class ChatGPTBridgePlugin extends Plugin {
     ].join("\n");
   }
 
-  async callOpenAI(prompt) {
+  async callAIProvider(prompt) {
     if (!this.settings.openaiApiKey) {
-      new Notice("Set OpenAI API key in ChatGPT Bridge settings first.");
+      new Notice("Set API key in ChatGPT Bridge settings first.");
       return null;
     }
+    const apiMode = this.settings.openaiApiMode || DEFAULT_SETTINGS.openaiApiMode;
+    const requestBody =
+      apiMode === "responses"
+        ? {
+            model: this.settings.openaiModel || DEFAULT_SETTINGS.openaiModel,
+            input: prompt,
+          }
+        : {
+            model: this.settings.openaiModel || DEFAULT_SETTINGS.openaiModel,
+            messages: [{ role: "user", content: prompt }],
+          };
     const response = await requestUrl({
-      url: "https://api.openai.com/v1/responses",
+      url: joinUrl(
+        this.settings.openaiBaseUrl || DEFAULT_SETTINGS.openaiBaseUrl,
+        apiMode === "responses" ? "/responses" : "/chat/completions"
+      ),
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.settings.openaiApiKey}`,
       },
-      body: JSON.stringify({
-        model: this.settings.openaiModel || DEFAULT_SETTINGS.openaiModel,
-        input: prompt,
-      }),
+      body: JSON.stringify(requestBody),
       throw: false,
     });
     if (response.status < 200 || response.status >= 300) {
       const message = response.text ? response.text.slice(0, 240) : `HTTP ${response.status}`;
-      new Notice(`OpenAI API error: ${message}`);
+      new Notice(`AI API error: ${message}`);
       return null;
     }
     const data = response.json || JSON.parse(response.text);
+    const chatText = data.choices?.[0]?.message?.content;
+    if (chatText) return chatText.trim();
     if (data.output_text) return data.output_text.trim();
     const text = (data.output || [])
       .flatMap((item) => item.content || [])
@@ -492,8 +512,8 @@ module.exports = class ChatGPTBridgePlugin extends Plugin {
       }
     }
     const tags = classifyTags(input.text);
-    new Notice("Sending text to OpenAI for summary...");
-    const summary = await this.callOpenAI(this.buildSummaryPrompt(input.text, tags));
+    new Notice("Sending text to AI provider for summary...");
+    const summary = await this.callAIProvider(this.buildSummaryPrompt(input.text, tags));
     if (!summary) return;
     const normalizedSummary = normalizeSummaryMarkdown(summary, tags);
     const block = [
@@ -565,7 +585,7 @@ class ChatGPTBridgeSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("OpenAI API key")
+      .setName("AI API key")
       .setDesc("Used only by the AI summary command. Stored in this plugin's local data.json.")
       .addText((text) => {
         text.inputEl.type = "password";
@@ -579,14 +599,41 @@ class ChatGPTBridgeSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("OpenAI model")
-      .setDesc("Model used for AI summaries.")
+      .setName("AI base URL")
+      .setDesc("OpenAI-compatible API base URL, such as https://api.openai.com/v1 or a third-party /v1 endpoint.")
+      .addText((text) =>
+        text
+          .setPlaceholder(DEFAULT_SETTINGS.openaiBaseUrl)
+          .setValue(this.plugin.settings.openaiBaseUrl || DEFAULT_SETTINGS.openaiBaseUrl)
+          .onChange(async (value) => {
+            this.plugin.settings.openaiBaseUrl = value.trim() || DEFAULT_SETTINGS.openaiBaseUrl;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("AI model")
+      .setDesc("Model used for AI summaries. Use the model name required by your provider.")
       .addText((text) =>
         text
           .setPlaceholder(DEFAULT_SETTINGS.openaiModel)
           .setValue(this.plugin.settings.openaiModel || DEFAULT_SETTINGS.openaiModel)
           .onChange(async (value) => {
             this.plugin.settings.openaiModel = value.trim() || DEFAULT_SETTINGS.openaiModel;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("AI API mode")
+      .setDesc("Use Chat Completions for most OpenAI-compatible providers. Use Responses for OpenAI Responses API.")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("chat_completions", "Chat Completions (/chat/completions)")
+          .addOption("responses", "Responses (/responses)")
+          .setValue(this.plugin.settings.openaiApiMode || DEFAULT_SETTINGS.openaiApiMode)
+          .onChange(async (value) => {
+            this.plugin.settings.openaiApiMode = value;
             await this.plugin.saveSettings();
           })
       );

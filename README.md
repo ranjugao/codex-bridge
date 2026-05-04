@@ -1,6 +1,6 @@
 # Obsidian ChatGPT Bridge
 
-一个轻量的 Obsidian 插件，用本地文件夹把 Obsidian 笔记和 ChatGPT/Codex 工作流连接起来，并支持把当前笔记内容发送到 OpenAI API 生成结构化 Markdown 摘要。
+一个轻量的 Obsidian 插件，用本地文件夹把 Obsidian 笔记和 ChatGPT/Codex 工作流连接起来，并支持把当前笔记内容发送到 OpenAI 或其他 OpenAI-compatible API 生成结构化 Markdown 摘要。
 
 ## 能做什么
 
@@ -71,15 +71,25 @@ your-vault/
         styles.css
 ```
 
-## 配置 OpenAI API
+## 配置 AI API
 
-如果只使用本地文件桥接功能，不需要 OpenAI API key。
+如果只使用本地文件桥接功能，不需要 API key。
 
 如果要使用 AI 摘要：
 
 1. 打开 `Settings -> ChatGPT Bridge`
-2. 在 `OpenAI API key` 填入你的 API key
-3. `OpenAI model` 默认是 `gpt-5.2`，可以按需修改
+2. 在 `AI API key` 填入你的 API key
+3. 在 `AI base URL` 填入接口地址，默认是 `https://api.openai.com/v1`
+4. 在 `AI model` 填入模型名，默认是 `gpt-4o-mini`
+5. 在 `AI API mode` 选择接口模式
+
+推荐设置：
+
+| 场景 | AI base URL | AI API mode |
+| --- | --- | --- |
+| OpenAI-compatible 第三方接口 | 供应商给你的 `/v1` 地址 | `Chat Completions (/chat/completions)` |
+| OpenAI Chat Completions | `https://api.openai.com/v1` | `Chat Completions (/chat/completions)` |
+| OpenAI Responses API | `https://api.openai.com/v1` | `Responses (/responses)` |
 
 API key 会保存在当前 vault 的插件本地配置里，不会提交到仓库。
 
@@ -140,5 +150,5 @@ _chatgpt_bridge/
 ## 注意
 
 - 这个插件通过 Obsidian Plugin API 写入文件，使用了 `app.vault.create` 和 `app.vault.modify`
-- AI 摘要会请求 OpenAI API，需要网络连接和有效 API key
+- AI 摘要会请求你配置的 AI API，需要网络连接和有效 API key
 - 不要把 Obsidian 生成的 `data.json` 提交到仓库，因为里面可能包含你的本地设置或 API key
