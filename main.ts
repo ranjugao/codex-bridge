@@ -10,6 +10,7 @@ import {
   TFile,
 } from "obsidian";
 import * as crypto from "crypto";
+import * as http from "http";
 
 interface ChatGPTBridgeSettings {
   language: "zh" | "en";
@@ -21,6 +22,9 @@ interface ChatGPTBridgeSettings {
   openaiModel: string;
   openaiBaseUrl: string;
   openaiApiMode: "chat_completions" | "responses";
+  localMcpEnabled: boolean;
+  localMcpPort: number;
+  localMcpToken: string;
 }
 
 const DEFAULT_SETTINGS: ChatGPTBridgeSettings = {
@@ -33,6 +37,9 @@ const DEFAULT_SETTINGS: ChatGPTBridgeSettings = {
   openaiModel: "gpt-4o-mini",
   openaiBaseUrl: "https://api.openai.com/v1",
   openaiApiMode: "chat_completions",
+  localMcpEnabled: false,
+  localMcpPort: 8765,
+  localMcpToken: "",
 };
 
 const TEXT = {
@@ -60,6 +67,10 @@ const TEXT = {
       duplicateSummary: "这段内容今天已经总结过了。",
       sendingSummary: "正在发送文本给 AI 服务生成摘要...",
       savedSummary: "AI 摘要已保存到 ",
+      mcpStarted: "本地 MCP 服务已启动：",
+      mcpStopped: "本地 MCP 服务已停止。",
+      mcpStartFailed: "本地 MCP 服务启动失败：",
+      mcpConfigCopied: "MCP 配置已复制。",
     },
     promptModal: {
       title: "创建 ChatGPT 请求",
@@ -126,6 +137,15 @@ const TEXT = {
       modelDesc: "AI 摘要使用的模型名，请使用你的服务商要求的模型名。",
       apiModeName: "AI API 模式",
       apiModeDesc: "大多数兼容接口使用 Chat Completions；OpenAI Responses API 使用 Responses。",
+      localMcpEnabledName: "启用本地 MCP 服务",
+      localMcpEnabledDesc: "在 Obsidian 桌面端启动仅监听 127.0.0.1 的本地 MCP HTTP 服务。",
+      localMcpPortName: "MCP 端口",
+      localMcpPortDesc: "本地 MCP 服务端口。修改后需要关闭再开启服务或重载插件。",
+      localMcpTokenName: "MCP token",
+      localMcpTokenDesc: "本地请求必须携带 Authorization: Bearer token。留空会自动生成。",
+      copyMcpConfigName: "复制 MCP 配置",
+      copyMcpConfigDesc: "复制给本地 MCP 客户端使用的 URL、header 和工具说明。",
+      copyMcpConfigButton: "复制",
       reloadNotice: "语言已切换。请重载插件或重启 Obsidian，让命令面板名称更新。",
     },
   },
@@ -153,6 +173,10 @@ const TEXT = {
       duplicateSummary: "This text has already been summarized in today's ChatGPT note.",
       sendingSummary: "Sending text to AI provider for summary...",
       savedSummary: "AI summary saved to ",
+      mcpStarted: "Local MCP server started: ",
+      mcpStopped: "Local MCP server stopped.",
+      mcpStartFailed: "Failed to start local MCP server: ",
+      mcpConfigCopied: "MCP config copied.",
     },
     promptModal: {
       title: "Create ChatGPT request",
@@ -219,6 +243,15 @@ const TEXT = {
       modelDesc: "Model used for AI summaries. Use the model name required by your provider.",
       apiModeName: "AI API mode",
       apiModeDesc: "Use Chat Completions for most OpenAI-compatible providers. Use Responses for OpenAI Responses API.",
+      localMcpEnabledName: "Enable local MCP server",
+      localMcpEnabledDesc: "Start a desktop-only local MCP HTTP server bound to 127.0.0.1.",
+      localMcpPortName: "MCP port",
+      localMcpPortDesc: "Local MCP server port. Disable and re-enable the server or reload the plugin after changing it.",
+      localMcpTokenName: "MCP token",
+      localMcpTokenDesc: "Requests must include Authorization: Bearer token. Leave empty to auto-generate one.",
+      copyMcpConfigName: "Copy MCP config",
+      copyMcpConfigDesc: "Copy URL, header, and tool details for local MCP clients.",
+      copyMcpConfigButton: "Copy",
       reloadNotice: "Language changed. Reload the plugin or restart Obsidian to update command palette names.",
     },
   },
@@ -258,9 +291,21 @@ function md5(value: string): string {
   return crypto.createHash("md5").update(value, "utf8").digest("hex");
 }
 
+function randomToken(): string {
+  return crypto.randomBytes(24).toString("hex");
+}
+
 function joinUrl(baseUrl: string, path: string): string {
   const base = (baseUrl || DEFAULT_SETTINGS.openaiBaseUrl).trim().replace(/\/+$/, "");
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function normalizeVaultPath(path: string): string {
+  const cleaned = (path || "").replace(/\\/g, "/").replace(/^\/+/, "").trim();
+  const parts = cleaned.split("/").filter((part) => part && part !== ".");
+  if (!parts.length || parts.includes("..")) throw new Error("Invalid vault path.");
+  if (parts[0] === ".obsidian") throw new Error("Writing or reading .obsidian through MCP is not allowed.");
+  return parts.join("/");
 }
 
 function classifyTags(value: string): string[] {
@@ -371,6 +416,7 @@ class PromptModal extends Modal {
 
 export default class ChatGPTBridgePlugin extends Plugin {
   settings: ChatGPTBridgeSettings;
+  localMcpServer: any = null;
 
   get text(): TextBundle {
     return TEXT[this.settings.language || DEFAULT_SETTINGS.language];
@@ -378,6 +424,10 @@ export default class ChatGPTBridgePlugin extends Plugin {
 
   async onload(): Promise<void> {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    if (!this.settings.localMcpToken) {
+      this.settings.localMcpToken = randomToken();
+      await this.saveSettings();
+    }
     this.addSettingTab(new ChatGPTBridgeSettingTab(this.app, this));
     const text = this.text;
 
@@ -418,10 +468,324 @@ export default class ChatGPTBridgePlugin extends Plugin {
     });
 
     await this.ensureBridgeIndex();
+    if (this.settings.localMcpEnabled) await this.startLocalMcpServer();
+  }
+
+  async onunload(): Promise<void> {
+    await this.stopLocalMcpServer();
   }
 
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
+  }
+
+  localMcpUrl(): string {
+    return `http://127.0.0.1:${this.settings.localMcpPort || DEFAULT_SETTINGS.localMcpPort}/mcp`;
+  }
+
+  localMcpConfig(): any {
+    return {
+      name: "obsidian-chatgpt-bridge",
+      url: this.localMcpUrl(),
+      headers: {
+        Authorization: `Bearer ${this.settings.localMcpToken}`,
+      },
+      tools: this.localMcpTools().map((tool) => tool.name),
+    };
+  }
+
+  async copyLocalMcpConfig(): Promise<void> {
+    const config = JSON.stringify(this.localMcpConfig(), null, 2);
+    await navigator.clipboard.writeText(config);
+    new Notice(this.text.notices.mcpConfigCopied);
+  }
+
+  async startLocalMcpServer(): Promise<void> {
+    if (this.localMcpServer) return;
+    const port = Number(this.settings.localMcpPort) || DEFAULT_SETTINGS.localMcpPort;
+    this.localMcpServer = http.createServer((req: any, res: any) => {
+      this.handleLocalMcpRequest(req, res).catch((error) => {
+        this.sendJson(res, 500, { error: String(error?.message || error) });
+      });
+    });
+    await new Promise<void>((resolve, reject) => {
+      this.localMcpServer.once("error", reject);
+      this.localMcpServer.listen(port, "127.0.0.1", () => {
+        this.localMcpServer.off("error", reject);
+        resolve();
+      });
+    }).catch((error) => {
+      this.localMcpServer = null;
+      new Notice(`${this.text.notices.mcpStartFailed}${String(error?.message || error)}`);
+      throw error;
+    });
+    new Notice(`${this.text.notices.mcpStarted}${this.localMcpUrl()}`);
+  }
+
+  async stopLocalMcpServer(): Promise<void> {
+    if (!this.localMcpServer) return;
+    const server = this.localMcpServer;
+    this.localMcpServer = null;
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    new Notice(this.text.notices.mcpStopped);
+  }
+
+  sendJson(res: any, status: number, data: any): void {
+    res.writeHead(status, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "http://127.0.0.1",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    });
+    res.end(JSON.stringify(data));
+  }
+
+  async readRequestBody(req: any): Promise<string> {
+    return await new Promise((resolve, reject) => {
+      let body = "";
+      req.on("data", (chunk: any) => {
+        body += chunk;
+        if (body.length > 10 * 1024 * 1024) {
+          reject(new Error("Request body too large."));
+          req.destroy();
+        }
+      });
+      req.on("end", () => resolve(body));
+      req.on("error", reject);
+    });
+  }
+
+  async handleLocalMcpRequest(req: any, res: any): Promise<void> {
+    if (req.method === "OPTIONS") {
+      this.sendJson(res, 204, {});
+      return;
+    }
+    if (req.method === "GET" && req.url === "/health") {
+      this.sendJson(res, 200, {
+        ok: true,
+        name: "obsidian-chatgpt-bridge",
+        vault: this.app.vault.getName(),
+        mcp: this.localMcpUrl(),
+      });
+      return;
+    }
+    if (req.method !== "POST" || req.url !== "/mcp") {
+      this.sendJson(res, 404, { error: "Not found." });
+      return;
+    }
+    const auth = String(req.headers.authorization || "");
+    if (auth !== `Bearer ${this.settings.localMcpToken}`) {
+      this.sendJson(res, 401, { error: "Unauthorized." });
+      return;
+    }
+    const raw = await this.readRequestBody(req);
+    const message = raw ? JSON.parse(raw) : {};
+    const response = await this.handleMcpJsonRpc(message);
+    this.sendJson(res, 200, response);
+  }
+
+  async handleMcpJsonRpc(message: any): Promise<any> {
+    const id = message.id ?? null;
+    try {
+      if (message.method === "initialize") {
+        return {
+          jsonrpc: "2.0",
+          id,
+          result: {
+            protocolVersion: "2025-03-26",
+            capabilities: { tools: {} },
+            serverInfo: { name: "obsidian-chatgpt-bridge", version: "0.5.0" },
+          },
+        };
+      }
+      if (message.method === "tools/list") {
+        return { jsonrpc: "2.0", id, result: { tools: this.localMcpTools() } };
+      }
+      if (message.method === "tools/call") {
+        const name = message.params?.name;
+        const args = message.params?.arguments || {};
+        const result = await this.callLocalMcpTool(name, args);
+        return {
+          jsonrpc: "2.0",
+          id,
+          result: {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          },
+        };
+      }
+      return { jsonrpc: "2.0", id, error: { code: -32601, message: "Method not found." } };
+    } catch (error) {
+      return {
+        jsonrpc: "2.0",
+        id,
+        error: { code: -32000, message: String(error?.message || error) },
+      };
+    }
+  }
+
+  localMcpTools(): any[] {
+    return [
+      {
+        name: "search_notes",
+        description: "Search Markdown notes in the current Obsidian vault.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: { type: "string" },
+            limit: { type: "number", default: 20 },
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: "read_note",
+        description: "Read a Markdown note by vault-relative path.",
+        inputSchema: {
+          type: "object",
+          properties: { path: { type: "string" } },
+          required: ["path"],
+        },
+      },
+      {
+        name: "write_note",
+        description: "Create or overwrite a Markdown note by vault-relative path.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            path: { type: "string" },
+            content: { type: "string" },
+            overwrite: { type: "boolean", default: false },
+          },
+          required: ["path", "content"],
+        },
+      },
+      {
+        name: "append_note",
+        description: "Append Markdown content to a note, creating it if needed.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            path: { type: "string" },
+            content: { type: "string" },
+          },
+          required: ["path", "content"],
+        },
+      },
+      {
+        name: "list_recent_notes",
+        description: "List recently modified Markdown notes.",
+        inputSchema: {
+          type: "object",
+          properties: { limit: { type: "number", default: 20 } },
+        },
+      },
+      {
+        name: "save_chat_summary",
+        description: "Append a chat summary to the daily ChatGPT note.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            content: { type: "string" },
+            tags: { type: "array", items: { type: "string" } },
+          },
+          required: ["content"],
+        },
+      },
+    ];
+  }
+
+  async callLocalMcpTool(name: string, args: any): Promise<any> {
+    if (name === "search_notes") return await this.mcpSearchNotes(args);
+    if (name === "read_note") return await this.mcpReadNote(args);
+    if (name === "write_note") return await this.mcpWriteNote(args);
+    if (name === "append_note") return await this.mcpAppendNote(args);
+    if (name === "list_recent_notes") return this.mcpListRecentNotes(args);
+    if (name === "save_chat_summary") return await this.mcpSaveChatSummary(args);
+    throw new Error(`Unknown tool: ${name}`);
+  }
+
+  async mcpSearchNotes(args: any): Promise<any> {
+    const query = String(args.query || "").toLowerCase().trim();
+    if (!query) throw new Error("query is required.");
+    const limit = Math.max(1, Math.min(Number(args.limit) || 20, 100));
+    const results: any[] = [];
+    for (const file of this.app.vault.getMarkdownFiles()) {
+      const haystack = `${file.path}\n${file.basename}`.toLowerCase();
+      let content = "";
+      if (!haystack.includes(query)) content = await this.app.vault.read(file);
+      if (haystack.includes(query) || content.toLowerCase().includes(query)) {
+        const text = content || (await this.app.vault.read(file));
+        const index = text.toLowerCase().indexOf(query);
+        const snippet = index >= 0 ? text.slice(Math.max(0, index - 80), index + query.length + 160) : text.slice(0, 240);
+        results.push({ path: file.path, basename: file.basename, mtime: file.stat.mtime, snippet });
+      }
+      if (results.length >= limit) break;
+    }
+    return { query, results };
+  }
+
+  async mcpReadNote(args: any): Promise<any> {
+    const path = normalizeVaultPath(args.path);
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile) || file.extension !== "md") throw new Error(`Markdown note not found: ${path}`);
+    return { path: file.path, content: await this.app.vault.read(file), stat: file.stat };
+  }
+
+  async mcpWriteNote(args: any): Promise<any> {
+    const path = normalizeVaultPath(args.path);
+    const content = String(args.content ?? "");
+    const existing = this.app.vault.getAbstractFileByPath(path);
+    if (existing instanceof TFile) {
+      if (!args.overwrite) throw new Error(`Note already exists: ${path}`);
+      await this.app.vault.modify(existing, content);
+      return { path, action: "modified" };
+    }
+    await writeFile(this.app, path, content);
+    return { path, action: "created" };
+  }
+
+  async mcpAppendNote(args: any): Promise<any> {
+    const path = normalizeVaultPath(args.path);
+    const content = String(args.content ?? "");
+    const existing = this.app.vault.getAbstractFileByPath(path);
+    if (existing instanceof TFile) {
+      const current = await this.app.vault.read(existing);
+      await this.app.vault.modify(existing, `${current.trimEnd()}\n\n${content.trimStart()}`);
+      return { path, action: "appended" };
+    }
+    await writeFile(this.app, path, content);
+    return { path, action: "created" };
+  }
+
+  mcpListRecentNotes(args: any): any {
+    const limit = Math.max(1, Math.min(Number(args.limit) || 20, 100));
+    const notes = this.app.vault
+      .getMarkdownFiles()
+      .sort((a, b) => b.stat.mtime - a.stat.mtime)
+      .slice(0, limit)
+      .map((file) => ({ path: file.path, basename: file.basename, mtime: file.stat.mtime }));
+    return { notes };
+  }
+
+  async mcpSaveChatSummary(args: any): Promise<any> {
+    const title = String(args.title || "Chat summary").trim();
+    const content = String(args.content || "").trim();
+    if (!content) throw new Error("content is required.");
+    const tags = Array.isArray(args.tags) ? args.tags.map((tag: any) => String(tag)) : ["chatgpt-log", "obsidian"];
+    const block = [
+      `## ${title}`,
+      "",
+      `Created: ${new Date().toISOString()}`,
+      "",
+      content,
+      "",
+      "## Tags",
+      tags.map((tag: string) => (tag.startsWith("#") ? tag : `#${tag}`)).join(" "),
+    ].join("\n");
+    const outputPath = todayPath();
+    await this.mcpAppendNote({ path: outputPath, content: block });
+    return { path: outputPath, action: "saved" };
   }
 
   getActiveMarkdownFile(): TFile | null {
@@ -846,6 +1210,60 @@ class ChatGPTBridgeSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.openaiApiMode = value as "chat_completions" | "responses";
             await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName(text.settings.localMcpEnabledName)
+      .setDesc(text.settings.localMcpEnabledDesc)
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.localMcpEnabled).onChange(async (value) => {
+          this.plugin.settings.localMcpEnabled = value;
+          await this.plugin.saveSettings();
+          if (value) {
+            await this.plugin.startLocalMcpServer();
+          } else {
+            await this.plugin.stopLocalMcpServer();
+          }
+          this.display();
+        }),
+      );
+
+    new Setting(containerEl)
+      .setName(text.settings.localMcpPortName)
+      .setDesc(text.settings.localMcpPortDesc)
+      .addText((input) =>
+        input
+          .setPlaceholder(String(DEFAULT_SETTINGS.localMcpPort))
+          .setValue(String(this.plugin.settings.localMcpPort || DEFAULT_SETTINGS.localMcpPort))
+          .onChange(async (value) => {
+            const port = Number(value.trim());
+            this.plugin.settings.localMcpPort = Number.isFinite(port) && port > 0 ? port : DEFAULT_SETTINGS.localMcpPort;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName(text.settings.localMcpTokenName)
+      .setDesc(text.settings.localMcpTokenDesc)
+      .addText((input) => {
+        input.inputEl.type = "password";
+        input
+          .setValue(this.plugin.settings.localMcpToken || "")
+          .onChange(async (value) => {
+            this.plugin.settings.localMcpToken = value.trim() || randomToken();
+            await this.plugin.saveSettings();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName(text.settings.copyMcpConfigName)
+      .setDesc(`${text.settings.copyMcpConfigDesc} ${this.plugin.localMcpUrl()}`)
+      .addButton((button) =>
+        button
+          .setButtonText(text.settings.copyMcpConfigButton)
+          .onClick(async () => {
+            await this.plugin.copyLocalMcpConfig();
           }),
       );
   }

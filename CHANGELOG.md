@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- Add a desktop-only local MCP HTTP server started by the Obsidian plugin.
+- Add bearer-token protection and localhost-only binding.
+- Add MCP tools for searching, reading, writing, appending, listing recent notes, and saving chat summaries.
+- Add settings for enabling the server, choosing the port, managing the token, and copying client config.
+
 ## 0.4.0
 
 - Add Chinese and English language switching for settings, notices, commands, exported context headings, and AI summaries.
