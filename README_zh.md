@@ -1,8 +1,27 @@
 # Obsidian ChatGPT Bridge
 
+[English](README.md) | [中文](README_zh.md)
+
+![Obsidian Plugin](https://img.shields.io/badge/Obsidian-Plugin-7c3aed)
+![Desktop Only](https://img.shields.io/badge/Desktop-Only-111827)
+![MCP](https://img.shields.io/badge/MCP-Localhost-2563eb)
+![Local First](https://img.shields.io/badge/Local--First-059669)
+![ChatGPT](https://img.shields.io/badge/ChatGPT-Codex-10a37f)
+![License](https://img.shields.io/badge/License-MIT-f59e0b)
+
 一个轻量的 Obsidian 桌面端插件，用本地文件夹和本地 MCP 服务把 Obsidian 笔记连接到 ChatGPT/Codex 工作流。它也支持把当前笔记内容发送到 OpenAI 或 OpenAI-compatible API，生成结构化 Markdown 摘要。
 
+**标签：** `obsidian-plugin` `mcp` `chatgpt` `codex` `local-first` `markdown` `notes` `ai-summary`
+
 > 仅支持 Obsidian 桌面端：插件使用了 Obsidian 桌面 API、Node `crypto` 和本地 HTTP 服务。
+
+## 快速入口
+
+- [功能](#功能)
+- [安装](#安装)
+- [本地 MCP 服务](#本地-mcp-服务)
+- [AI 摘要分类规则](#ai-摘要分类规则)
+- [开发](#开发)
 
 ## 功能
 
