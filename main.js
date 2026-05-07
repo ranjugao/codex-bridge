@@ -5,6 +5,7 @@ const {
   Notice,
   Plugin,
   PluginSettingTab,
+  Platform,
   requestUrl,
   Setting,
   TFile,
@@ -56,6 +57,7 @@ const TEXT = {
       mcpStopped: "本地 MCP 服务已停止。",
       mcpStartFailed: "本地 MCP 服务启动失败：",
       mcpConfigCopied: "MCP 配置已复制。",
+      mcpDesktopOnly: "本地 MCP 服务仅支持 Obsidian 桌面端。",
     },
     promptModal: {
       title: "创建 ChatGPT 请求",
@@ -162,6 +164,7 @@ const TEXT = {
       mcpStopped: "Local MCP server stopped.",
       mcpStartFailed: "Failed to start local MCP server: ",
       mcpConfigCopied: "MCP config copied.",
+      mcpDesktopOnly: "The local MCP server is only available in Obsidian desktop.",
     },
     promptModal: {
       title: "Create ChatGPT request",
@@ -288,8 +291,12 @@ function normalizeVaultPath(path) {
   const cleaned = (path || "").replace(/\\/g, "/").replace(/^\/+/, "").trim();
   const parts = cleaned.split("/").filter((part) => part && part !== ".");
   if (!parts.length || parts.includes("..")) throw new Error("Invalid vault path.");
-  if (parts[0] === ".obsidian") throw new Error("Writing or reading .obsidian through MCP is not allowed.");
-  return parts.join("/");
+  if (parts.includes(".obsidian") || parts.includes(".trash")) {
+    throw new Error("Access to .obsidian and .trash through MCP is not allowed.");
+  }
+  const normalized = parts.join("/");
+  if (!normalized.endsWith(".md")) throw new Error("Only Markdown notes are supported through MCP.");
+  return normalized;
 }
 
 function classifyTags(value) {
@@ -465,13 +472,21 @@ module.exports = class ChatGPTBridgePlugin extends Plugin {
   }
 
   localMcpConfig() {
+    const port = String(this.settings.localMcpPort || DEFAULT_SETTINGS.localMcpPort);
     return {
       name: "obsidian-chatgpt-bridge",
+      transport: "streamable-http-json-rpc",
+      endpoint: this.localMcpUrl(),
       url: this.localMcpUrl(),
+      health: `http://127.0.0.1:${port}/health`,
       headers: {
         Authorization: `Bearer ${this.settings.localMcpToken}`,
       },
       tools: this.localMcpTools().map((tool) => tool.name),
+      codexEnv: {
+        OBSIDIAN_MCP_PORT: port,
+        OBSIDIAN_MCP_TOKEN: this.settings.localMcpToken,
+      },
     };
   }
 
@@ -483,6 +498,10 @@ module.exports = class ChatGPTBridgePlugin extends Plugin {
 
   async startLocalMcpServer() {
     if (this.localMcpServer) return;
+    if (!Platform.isDesktopApp) {
+      new Notice(this.text.notices.mcpDesktopOnly);
+      throw new Error(this.text.notices.mcpDesktopOnly);
+    }
     const port = Number(this.settings.localMcpPort) || DEFAULT_SETTINGS.localMcpPort;
     this.localMcpServer = http.createServer((req, res) => {
       this.handleLocalMcpRequest(req, res).catch((error) => {
@@ -546,7 +565,8 @@ module.exports = class ChatGPTBridgePlugin extends Plugin {
         ok: true,
         name: "obsidian-chatgpt-bridge",
         vault: this.app.vault.getName(),
-        mcp: this.localMcpUrl(),
+        endpoint: this.localMcpUrl(),
+        tools: this.localMcpTools().map((tool) => tool.name),
       });
       return;
     }
@@ -562,6 +582,10 @@ module.exports = class ChatGPTBridgePlugin extends Plugin {
     const raw = await this.readRequestBody(req);
     const message = raw ? JSON.parse(raw) : {};
     const response = await this.handleMcpJsonRpc(message);
+    if (!response) {
+      this.sendJson(res, 202, { ok: true });
+      return;
+    }
     this.sendJson(res, 200, response);
   }
 
@@ -579,6 +603,7 @@ module.exports = class ChatGPTBridgePlugin extends Plugin {
           },
         };
       }
+      if (message.method === "notifications/initialized") return null;
       if (message.method === "tools/list") {
         return { jsonrpc: "2.0", id, result: { tools: this.localMcpTools() } };
       }
@@ -1203,7 +1228,12 @@ class ChatGPTBridgeSettingTab extends PluginSettingTab {
           this.plugin.settings.localMcpEnabled = value;
           await this.plugin.saveSettings();
           if (value) {
-            await this.plugin.startLocalMcpServer();
+            try {
+              await this.plugin.startLocalMcpServer();
+            } catch {
+              this.plugin.settings.localMcpEnabled = false;
+              await this.plugin.saveSettings();
+            }
           } else {
             await this.plugin.stopLocalMcpServer();
           }
@@ -1220,7 +1250,8 @@ class ChatGPTBridgeSettingTab extends PluginSettingTab {
           .setValue(String(this.plugin.settings.localMcpPort || DEFAULT_SETTINGS.localMcpPort))
           .onChange(async (value) => {
             const port = Number(value.trim());
-            this.plugin.settings.localMcpPort = Number.isFinite(port) && port > 0 ? port : DEFAULT_SETTINGS.localMcpPort;
+            this.plugin.settings.localMcpPort =
+              Number.isInteger(port) && port > 0 && port <= 65535 ? port : DEFAULT_SETTINGS.localMcpPort;
             await this.plugin.saveSettings();
           }),
       );

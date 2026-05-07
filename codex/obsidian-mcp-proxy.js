@@ -2,37 +2,29 @@
 
 const fs = require("fs");
 const http = require("http");
-const os = require("os");
-const path = require("path");
-
-const DEFAULT_CONFIG_PATHS = [
-  "/Users/luke/Documents/note_test/.obsidian/plugins/chatgpt-bridge/data.json",
-  "/Users/luke/Documents/note_test/note/.obsidian/plugins/chatgpt-bridge/data.json",
-];
 
 function readPluginConfig() {
-  for (const configPath of DEFAULT_CONFIG_PATHS) {
-    try {
-      const data = JSON.parse(fs.readFileSync(configPath, "utf8"));
-      if (data.localMcpPort && data.localMcpToken) return data;
-    } catch {
-      // Try the next known vault path.
-    }
+  const configPath = process.env.OBSIDIAN_MCP_CONFIG || process.argv[2];
+  if (!configPath) return {};
+  try {
+    return JSON.parse(fs.readFileSync(configPath, "utf8"));
+  } catch (error) {
+    throw new Error(`Unable to read Obsidian MCP config at ${configPath}: ${error.message}`);
   }
-  return {};
 }
 
 function mcpTarget() {
   const config = readPluginConfig();
+  const endpoint = process.env.OBSIDIAN_MCP_ENDPOINT;
   const port = Number(process.env.OBSIDIAN_MCP_PORT || config.localMcpPort || 8765);
   const token = process.env.OBSIDIAN_MCP_TOKEN || config.localMcpToken;
   if (!token) {
     throw new Error(
-      "Missing Obsidian MCP token. Enable ChatGPT Bridge local MCP server or set OBSIDIAN_MCP_TOKEN.",
+      "Missing Obsidian MCP token. Enable ChatGPT Bridge local MCP server, then set OBSIDIAN_MCP_TOKEN or OBSIDIAN_MCP_CONFIG.",
     );
   }
   return {
-    url: new URL(`http://127.0.0.1:${port}/mcp`),
+    url: new URL(endpoint || `http://127.0.0.1:${port}/mcp`),
     token,
   };
 }
@@ -141,4 +133,3 @@ process.stdin.on("data", (chunk) => {
 });
 
 process.stdin.on("end", () => process.exit(0));
-

@@ -4,3 +4,4 @@ node_modules/
 dist/
 release-assets/
 *.log
+codex/obsidian-mcp-stdio.js
