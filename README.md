@@ -225,7 +225,9 @@ Summary output uses:
 
 ## Language
 
-Open `Settings -> ChatGPT Bridge`, then choose `中文` or `English`.
+Open `Settings -> ChatGPT Bridge`, then choose `English` or `中文`.
+
+New installs default to English for the Obsidian community plugin directory. You can switch to Chinese at any time.
 
 Language affects:
 
@@ -233,6 +235,7 @@ Language affects:
 - Obsidian notices
 - Command palette labels
 - Exported context headings
+- Generated bridge request headings
 - AI summary prompt and summary headings
 
 Command names are registered when Obsidian loads the plugin. Reload the plugin or restart Obsidian after changing language.

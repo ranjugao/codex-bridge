@@ -29,7 +29,7 @@ interface ChatGPTBridgeSettings {
 }
 
 const DEFAULT_SETTINGS: ChatGPTBridgeSettings = {
-  language: "zh",
+  language: "en",
   bridgeFolder: "_chatgpt_bridge",
   includeFrontmatter: true,
   includeBacklinks: true,
@@ -81,6 +81,10 @@ const TEXT = {
     },
     context: {
       noItems: "无",
+      contextTitle: "ChatGPT 上下文",
+      requestTitle: "ChatGPT 请求",
+      sourceNote: "源笔记",
+      requestContext: "上下文",
       headings: "标题",
       backlinks: "反向链接",
       content: "正文",
@@ -188,6 +192,10 @@ const TEXT = {
     },
     context: {
       noItems: "none",
+      contextTitle: "ChatGPT Context",
+      requestTitle: "ChatGPT Request",
+      sourceNote: "Source Note",
+      requestContext: "Context",
       headings: "Headings",
       backlinks: "Backlinks",
       content: "Content",
@@ -618,7 +626,7 @@ export default class ChatGPTBridgePlugin extends Plugin {
           result: {
             protocolVersion: "2025-03-26",
             capabilities: { tools: {} },
-            serverInfo: { name: "obsidian-chatgpt-bridge", version: "0.5.0" },
+            serverInfo: { name: "obsidian-chatgpt-bridge", version: "0.5.1" },
           },
         };
       }
@@ -868,7 +876,7 @@ export default class ChatGPTBridgePlugin extends Plugin {
       `exported_at: "${context.exportedAt}"`,
       "---",
       "",
-      `# ChatGPT Context: ${context.file.basename}`,
+      `# ${text.context.contextTitle}: ${context.file.basename}`,
       "",
       `${text.context.source}: [[${context.file.path.replace(/\.md$/, "")}]]`,
       "",
@@ -915,15 +923,15 @@ export default class ChatGPTBridgePlugin extends Plugin {
         "status: open",
         "---",
         "",
-        "# ChatGPT Request",
+        `# ${text.context.requestTitle}`,
         "",
         prompt || text.promptModal.fallbackPrompt,
         "",
-        "## Source Note",
+        `## ${text.context.sourceNote}`,
         "",
         `[[${file.path.replace(/\.md$/, "")}]]`,
         "",
-        "## Context",
+        `## ${text.context.requestContext}`,
         "",
         this.contextToMarkdown(context),
       ].join("\n");

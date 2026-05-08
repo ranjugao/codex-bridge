@@ -6,7 +6,7 @@ This checklist publishes the plugin to GitHub and submits it to the Obsidian com
 
 - Plugin id: `chatgpt-bridge`
 - Plugin name: `ChatGPT Bridge`
-- Version: `0.5.0`
+- Version: `0.5.1`
 - Minimum Obsidian version: `1.5.0`
 - Release files: `manifest.json`, `main.js`, `styles.css`
 
@@ -33,8 +33,8 @@ If the repository owner changes, replace that part of the URL.
 
 Create a GitHub release with:
 
-- Tag: `0.5.0`
-- Title: `0.5.0`
+- Tag: `0.5.1`
+- Title: `0.5.1`
 - Attachments:
   - `release-assets/manifest.json`
   - `release-assets/main.js`
@@ -47,10 +47,9 @@ Suggested release notes:
 ```markdown
 ## What's Changed
 
-- Add a desktop-only local MCP HTTP server started by the Obsidian plugin.
-- Add bearer-token protection and localhost-only binding.
-- Add MCP tools for searching, reading, writing, appending, listing recent notes, and saving chat summaries.
-- Add settings for enabling the server, choosing the port, managing the token, and copying client config.
+- Default the plugin UI language to English for community release installs.
+- Keep Chinese and English language switching in settings.
+- Localize generated bridge request and context headings.
 
 ## Install
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1
+
+- Default the plugin UI language to English for community release installs.
+- Keep Chinese and English language switching in settings.
+- Localize generated bridge request and context headings.
+
 ## 0.5.0
 
 - Add a desktop-only local MCP HTTP server started by the Obsidian plugin.
