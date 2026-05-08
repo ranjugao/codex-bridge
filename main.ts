@@ -626,7 +626,7 @@ export default class ChatGPTBridgePlugin extends Plugin {
           result: {
             protocolVersion: "2025-03-26",
             capabilities: { tools: {} },
-            serverInfo: { name: "obsidian-chatgpt-bridge", version: "0.5.1" },
+            serverInfo: { name: "obsidian-chatgpt-bridge", version: "0.5.2" },
           },
         };
       }

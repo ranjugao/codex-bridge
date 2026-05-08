@@ -6,7 +6,7 @@ This checklist publishes the plugin to GitHub and submits it to the Obsidian com
 
 - Plugin id: `chatgpt-bridge`
 - Plugin name: `ChatGPT Bridge`
-- Version: `0.5.1`
+- Version: `0.5.2`
 - Minimum Obsidian version: `1.5.0`
 - Release files: `manifest.json`, `main.js`, `styles.css`
 
@@ -33,8 +33,8 @@ If the repository owner changes, replace that part of the URL.
 
 Create a GitHub release with:
 
-- Tag: `0.5.1`
-- Title: `0.5.1`
+- Tag: `0.5.2`
+- Title: `0.5.2`
 - Attachments:
   - `release-assets/manifest.json`
   - `release-assets/main.js`
@@ -47,9 +47,7 @@ Suggested release notes:
 ```markdown
 ## What's Changed
 
-- Default the plugin UI language to English for community release installs.
-- Keep Chinese and English language switching in settings.
-- Localize generated bridge request and context headings.
+- Remove "Obsidian" from the plugin description for community directory review.
 
 ## Install
 
@@ -67,7 +65,7 @@ Fork `obsidianmd/obsidian-releases`, edit `community-plugins.json`, and append t
   "id": "chatgpt-bridge",
   "name": "ChatGPT Bridge",
   "author": "LukeJiaoR",
-  "description": "Local file bridge for sharing Obsidian note context with ChatGPT/Codex and importing replies.",
+  "description": "Local file bridge for sharing note context with ChatGPT/Codex and importing replies.",
   "repo": "ranjugao/obsidian-chatgpt-bridge"
 }
 ```

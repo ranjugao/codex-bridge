@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2
+
+- Remove "Obsidian" from the plugin description for community directory review.
+
 ## 0.5.1
 
 - Default the plugin UI language to English for community release installs.
