@@ -20,7 +20,7 @@ function mcpTarget() {
   const token = process.env.OBSIDIAN_MCP_TOKEN || config.localMcpToken;
   if (!token) {
     throw new Error(
-      "Missing Obsidian MCP token. Enable ChatGPT Bridge local MCP server, then set OBSIDIAN_MCP_TOKEN or OBSIDIAN_MCP_CONFIG.",
+      "Missing Obsidian MCP token. Enable Codex Bridge local MCP server, then set OBSIDIAN_MCP_TOKEN or OBSIDIAN_MCP_CONFIG.",
     );
   }
   return {

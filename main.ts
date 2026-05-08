@@ -13,7 +13,7 @@ import {
 import * as crypto from "crypto";
 import * as http from "http";
 
-interface ChatGPTBridgeSettings {
+interface CodexBridgeSettings {
   language: "zh" | "en";
   bridgeFolder: string;
   includeFrontmatter: boolean;
@@ -28,12 +28,12 @@ interface ChatGPTBridgeSettings {
   localMcpToken: string;
 }
 
-const DEFAULT_SETTINGS: ChatGPTBridgeSettings = {
+const DEFAULT_SETTINGS: CodexBridgeSettings = {
   language: "en",
-  bridgeFolder: "_chatgpt_bridge",
+  bridgeFolder: "_codex_bridge",
   includeFrontmatter: true,
   includeBacklinks: true,
-  appendHeading: "ChatGPT Response",
+  appendHeading: "Codex Response",
   openaiApiKey: "",
   openaiModel: "gpt-4o-mini",
   openaiBaseUrl: "https://api.openai.com/v1",
@@ -49,7 +49,7 @@ const TEXT = {
     cancelButton: "取消",
     commands: {
       exportContext: "导出当前笔记上下文",
-      createRequest: "从当前笔记创建 ChatGPT 请求",
+      createRequest: "从当前笔记创建 Codex 请求",
       appendReply: "追加最新桥接回复到当前笔记",
       createReplyNote: "从最新桥接回复创建笔记",
       openIndex: "打开桥接说明",
@@ -60,10 +60,10 @@ const TEXT = {
       exportedContext: "已导出当前笔记上下文。",
       createdRequest: "已创建桥接请求：",
       noReply: "没有找到回复：",
-      appendedReply: "已追加最新 ChatGPT 桥接回复。",
+      appendedReply: "已追加最新 Codex 桥接回复。",
       createdReplyNote: "已从最新回复创建笔记：",
       noText: "没有可总结的文本。",
-      missingApiKey: "请先在 ChatGPT Bridge 设置中填写 API key。",
+      missingApiKey: "请先在 Codex Bridge 设置中填写 API key。",
       apiError: "AI API 错误：",
       duplicateSummary: "这段内容今天已经总结过了。",
       sendingSummary: "正在发送文本给 AI 服务生成摘要...",
@@ -75,14 +75,14 @@ const TEXT = {
       mcpDesktopOnly: "本地 MCP 服务仅支持 Obsidian 桌面端。",
     },
     promptModal: {
-      title: "创建 ChatGPT 请求",
-      placeholder: "希望 ChatGPT/Codex 对这篇笔记做什么？",
+      title: "创建 Codex 请求",
+      placeholder: "希望 Codex 对这篇笔记做什么？",
       fallbackPrompt: "请帮助处理这篇笔记。",
     },
     context: {
       noItems: "无",
-      contextTitle: "ChatGPT 上下文",
-      requestTitle: "ChatGPT 请求",
+      contextTitle: "Codex 上下文",
+      requestTitle: "Codex 请求",
       sourceNote: "源笔记",
       requestContext: "上下文",
       headings: "标题",
@@ -93,14 +93,14 @@ const TEXT = {
       sourceReply: "来源回复",
     },
     bridgeIndex: [
-      "# ChatGPT Bridge",
+      "# Codex Bridge",
       "",
-      "这个文件夹用于在 Obsidian 和 ChatGPT/Codex 之间进行本地文件桥接。",
+      "这个文件夹用于在 Obsidian 和 Codex 之间进行本地文件桥接。",
       "",
       "## 工作流",
       "",
-      "1. 在 Obsidian 中运行 `ChatGPT Bridge: 导出当前笔记上下文` 或 `从当前笔记创建 ChatGPT 请求`。",
-      "2. 在 ChatGPT/Codex 中读取这个文件夹里的文件，并把 Markdown 回复写入 `replies/`。",
+      "1. 在 Obsidian 中运行 `Codex Bridge: 导出当前笔记上下文` 或 `从当前笔记创建 Codex 请求`。",
+      "2. 在 Codex 中读取这个文件夹里的文件，并把 Markdown 回复写入 `replies/`。",
       "3. 回到 Obsidian，运行 `追加最新桥接回复到当前笔记` 或 `从最新桥接回复创建笔记`。",
       "",
       "插件不会为本地桥接功能保存网络 API token。",
@@ -124,7 +124,7 @@ const TEXT = {
       createdLine: "创建时间",
     },
     settings: {
-      title: "ChatGPT Bridge",
+      title: "Codex Bridge",
       languageName: "语言",
       languageDesc: "切换插件界面、通知和 AI 摘要语言。命令面板名称会在重载插件后更新。",
       zh: "中文",
@@ -160,7 +160,7 @@ const TEXT = {
     cancelButton: "Cancel",
     commands: {
       exportContext: "Export active note context",
-      createRequest: "Create ChatGPT request from active note",
+      createRequest: "Create Codex request from active note",
       appendReply: "Append latest bridge reply to active note",
       createReplyNote: "Create note from latest bridge reply",
       openIndex: "Open bridge index",
@@ -168,15 +168,15 @@ const TEXT = {
     },
     notices: {
       openMarkdown: "Open a Markdown note first.",
-      exportedContext: "Exported active note context for ChatGPT.",
+      exportedContext: "Exported active note context for Codex.",
       createdRequest: "Created bridge request: ",
       noReply: "No reply found in ",
-      appendedReply: "Appended latest ChatGPT bridge reply.",
+      appendedReply: "Appended latest Codex bridge reply.",
       createdReplyNote: "Created note from latest reply: ",
       noText: "No text found to summarize.",
-      missingApiKey: "Set API key in ChatGPT Bridge settings first.",
+      missingApiKey: "Set API key in Codex Bridge settings first.",
       apiError: "AI API error: ",
-      duplicateSummary: "This text has already been summarized in today's ChatGPT note.",
+      duplicateSummary: "This text has already been summarized in today's Codex note.",
       sendingSummary: "Sending text to AI provider for summary...",
       savedSummary: "AI summary saved to ",
       mcpStarted: "Local MCP server started: ",
@@ -186,14 +186,14 @@ const TEXT = {
       mcpDesktopOnly: "The local MCP server is only available in Obsidian desktop.",
     },
     promptModal: {
-      title: "Create ChatGPT request",
-      placeholder: "What should ChatGPT/Codex do with this note?",
+      title: "Create Codex request",
+      placeholder: "What should Codex do with this note?",
       fallbackPrompt: "Please help with this note.",
     },
     context: {
       noItems: "none",
-      contextTitle: "ChatGPT Context",
-      requestTitle: "ChatGPT Request",
+      contextTitle: "Codex Context",
+      requestTitle: "Codex Request",
       sourceNote: "Source Note",
       requestContext: "Context",
       headings: "Headings",
@@ -204,14 +204,14 @@ const TEXT = {
       sourceReply: "Source reply",
     },
     bridgeIndex: [
-      "# ChatGPT Bridge",
+      "# Codex Bridge",
       "",
-      "This folder is a local file bridge between Obsidian and ChatGPT/Codex.",
+      "This folder is a local file bridge between Obsidian and Codex.",
       "",
       "## Workflow",
       "",
-      "1. In Obsidian, run `ChatGPT Bridge: Export active note context` or `Create ChatGPT request from active note`.",
-      "2. In ChatGPT/Codex, read files from this folder and write Markdown replies into `replies/`.",
+      "1. In Obsidian, run `Codex Bridge: Export active note context` or `Create Codex request from active note`.",
+      "2. In Codex, read files from this folder and write Markdown replies into `replies/`.",
       "3. In Obsidian, run `Append latest bridge reply to active note` or `Create note from latest bridge reply`.",
       "",
       "No network API token is stored by this plugin for local bridge workflows.",
@@ -235,7 +235,7 @@ const TEXT = {
       createdLine: "Created",
     },
     settings: {
-      title: "ChatGPT Bridge",
+      title: "Codex Bridge",
       languageName: "Language",
       languageDesc: "Switch plugin UI, notices, and AI summary language. Command palette names update after reload.",
       zh: "中文",
@@ -287,7 +287,7 @@ function nowStamp(): string {
 function todayPath(): string {
   const now = new Date();
   const pad = (value: number) => String(value).padStart(2, "0");
-  return `ChatGPT/${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.md`;
+  return `Codex/${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.md`;
 }
 
 function slugify(value: string): string {
@@ -404,7 +404,7 @@ class PromptModal extends Modal {
     contentEl.empty();
     contentEl.createEl("h2", { text: this.titleText });
     const textarea = contentEl.createEl("textarea", {
-      cls: "chatgpt-bridge-textarea",
+      cls: "codex-bridge-textarea",
       attr: { placeholder: this.placeholder },
     });
     textarea.addEventListener("input", (event) => {
@@ -429,8 +429,8 @@ class PromptModal extends Modal {
   }
 }
 
-export default class ChatGPTBridgePlugin extends Plugin {
-  settings: ChatGPTBridgeSettings;
+export default class CodexBridgePlugin extends Plugin {
+  settings: CodexBridgeSettings;
   localMcpServer: any = null;
 
   get text(): TextBundle {
@@ -443,7 +443,7 @@ export default class ChatGPTBridgePlugin extends Plugin {
       this.settings.localMcpToken = randomToken();
       await this.saveSettings();
     }
-    this.addSettingTab(new ChatGPTBridgeSettingTab(this.app, this));
+    this.addSettingTab(new CodexBridgeSettingTab(this.app, this));
     const text = this.text;
 
     this.addCommand({
@@ -501,7 +501,7 @@ export default class ChatGPTBridgePlugin extends Plugin {
   localMcpConfig(): any {
     const port = String(this.settings.localMcpPort || DEFAULT_SETTINGS.localMcpPort);
     return {
-      name: "obsidian-chatgpt-bridge",
+      name: "codex-bridge",
       transport: "streamable-http-json-rpc",
       endpoint: this.localMcpUrl(),
       url: this.localMcpUrl(),
@@ -590,7 +590,7 @@ export default class ChatGPTBridgePlugin extends Plugin {
     if (req.method === "GET" && req.url === "/health") {
       this.sendJson(res, 200, {
         ok: true,
-        name: "obsidian-chatgpt-bridge",
+        name: "codex-bridge",
         vault: this.app.vault.getName(),
         endpoint: this.localMcpUrl(),
         tools: this.localMcpTools().map((tool) => tool.name),
@@ -626,7 +626,7 @@ export default class ChatGPTBridgePlugin extends Plugin {
           result: {
             protocolVersion: "2025-03-26",
             capabilities: { tools: {} },
-            serverInfo: { name: "obsidian-chatgpt-bridge", version: "0.5.2" },
+            serverInfo: { name: "codex-bridge", version: "0.6.0" },
           },
         };
       }
@@ -714,7 +714,7 @@ export default class ChatGPTBridgePlugin extends Plugin {
       },
       {
         name: "save_chat_summary",
-        description: "Append a chat summary to the daily ChatGPT note.",
+        description: "Append a chat summary to the daily Codex note.",
         inputSchema: {
           type: "object",
           properties: {
@@ -805,7 +805,7 @@ export default class ChatGPTBridgePlugin extends Plugin {
     const title = String(args.title || "Chat summary").trim();
     const content = String(args.content || "").trim();
     if (!content) throw new Error("content is required.");
-    const tags = Array.isArray(args.tags) ? args.tags.map((tag: any) => String(tag)) : ["chatgpt-log", "obsidian"];
+    const tags = Array.isArray(args.tags) ? args.tags.map((tag: any) => String(tag)) : ["codex-log", "obsidian"];
     const block = [
       `## ${title}`,
       "",
@@ -871,7 +871,7 @@ export default class ChatGPTBridgePlugin extends Plugin {
       : `- ${text.context.noItems}`;
     return [
       "---",
-      "generated_by: chatgpt-bridge",
+      "generated_by: codex-bridge",
       `source_note: "${context.file.path.replace(/"/g, '\\"')}"`,
       `exported_at: "${context.exportedAt}"`,
       "---",
@@ -917,7 +917,7 @@ export default class ChatGPTBridgePlugin extends Plugin {
       const path = `${this.settings.bridgeFolder}/requests/${name}`;
       const request = [
         "---",
-        "generated_by: chatgpt-bridge",
+        "generated_by: codex-bridge",
         `source_note: "${file.path.replace(/"/g, '\\"')}"`,
         `created_at: "${new Date().toISOString()}"`,
         "status: open",
@@ -1125,15 +1125,15 @@ export default class ChatGPTBridgePlugin extends Plugin {
       const existingText = await this.app.vault.read(existing);
       await this.app.vault.modify(existing, existingText.trimEnd() + "\n\n" + block.trimStart());
     } else {
-      await ensureFolder(this.app, "ChatGPT");
-      await this.app.vault.create(outputPath, `# ${outputPath.replace(/^ChatGPT\//, "").replace(/\.md$/, "")}\n${block}`);
+      await ensureFolder(this.app, "Codex");
+      await this.app.vault.create(outputPath, `# ${outputPath.replace(/^Codex\//, "").replace(/\.md$/, "")}\n${block}`);
     }
     new Notice(`${this.text.notices.savedSummary}${outputPath}`);
   }
 }
 
-class ChatGPTBridgeSettingTab extends PluginSettingTab {
-  constructor(app: App, private plugin: ChatGPTBridgePlugin) {
+class CodexBridgeSettingTab extends PluginSettingTab {
+  constructor(app: App, private plugin: CodexBridgePlugin) {
     super(app, plugin);
   }
 
@@ -1164,7 +1164,7 @@ class ChatGPTBridgeSettingTab extends PluginSettingTab {
       .setDesc(text.settings.bridgeFolderDesc)
       .addText((text) =>
         text
-          .setPlaceholder("_chatgpt_bridge")
+          .setPlaceholder("_codex_bridge")
           .setValue(this.plugin.settings.bridgeFolder)
           .onChange(async (value) => {
             this.plugin.settings.bridgeFolder = value.trim() || DEFAULT_SETTINGS.bridgeFolder;

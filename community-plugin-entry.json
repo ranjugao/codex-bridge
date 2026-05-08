@@ -1,7 +1,7 @@
 {
-  "id": "chatgpt-bridge",
-  "name": "ChatGPT Bridge",
+  "id": "codex-bridge",
+  "name": "Codex Bridge",
   "author": "LukeJiaoR",
-  "description": "Local file bridge for sharing note context with ChatGPT/Codex and importing replies.",
-  "repo": "ranjugao/obsidian-chatgpt-bridge"
+  "description": "Local bridge for using vault notes with Codex and importing replies.",
+  "repo": "ranjugao/codex-bridge"
 }

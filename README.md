@@ -1,4 +1,4 @@
-# Obsidian ChatGPT Bridge
+# Codex Bridge
 
 [English](README.md) | [中文](README_zh.md)
 
@@ -6,12 +6,12 @@
 ![Desktop Only](https://img.shields.io/badge/Desktop-Only-111827)
 ![MCP](https://img.shields.io/badge/MCP-Localhost-2563eb)
 ![Local First](https://img.shields.io/badge/Local--First-059669)
-![ChatGPT](https://img.shields.io/badge/ChatGPT-Codex-10a37f)
+![Codex](https://img.shields.io/badge/Codex-MCP-10a37f)
 ![License](https://img.shields.io/badge/License-MIT-f59e0b)
 
-`obsidian-chatgpt-bridge` is a desktop-only Obsidian plugin that connects your local vault to ChatGPT/Codex workflows. It provides file-based bridge commands, optional AI summarization, and a localhost MCP endpoint that local clients can use to search, read, and write notes without hardcoding a vault path.
+`codex-bridge` is a desktop-only plugin that connects your local vault to Codex. Its primary workflow is a localhost MCP endpoint that lets Codex search, read, and write notes without hardcoding a vault path. It also provides file-based bridge commands and optional AI summarization.
 
-**Tags:** `obsidian-plugin` `mcp` `chatgpt` `codex` `local-first` `markdown` `notes` `ai-summary`
+**Tags:** `obsidian-plugin` `mcp` `codex` `local-first` `markdown` `notes` `ai-summary`
 
 ## Quick Links
 
@@ -24,11 +24,11 @@
 
 ## Features
 
-- Export active-note context for ChatGPT/Codex
+- Export active-note context for Codex
 - Create request files from the active note
 - Append the latest bridge reply back into the active note
 - Create a new note from the latest bridge reply
-- Summarize selected text or the active note into `ChatGPT/YYYY-MM-DD.md`
+- Summarize selected text or the active note into `Codex/YYYY-MM-DD.md`
 - Deduplicate summaries with an MD5 hash marker
 - Auto-tag summaries with `#coding`, `#tiktok`, `#business`, or `#ai`
 - Switch plugin UI between Chinese and English
@@ -42,7 +42,7 @@
 2. Create the plugin directory inside your Obsidian vault:
 
 ```bash
-mkdir -p "/path/to/your/vault/.obsidian/plugins/chatgpt-bridge"
+mkdir -p "/path/to/your/vault/.obsidian/plugins/codex-bridge"
 ```
 
 3. Copy these files into that directory:
@@ -55,7 +55,7 @@ styles.css
 
 4. Restart Obsidian.
 5. Open `Settings -> Community plugins`.
-6. Enable `ChatGPT Bridge`.
+6. Enable `Codex Bridge`.
 
 Expected layout:
 
@@ -63,7 +63,7 @@ Expected layout:
 your-vault/
   .obsidian/
     plugins/
-      chatgpt-bridge/
+      codex-bridge/
         main.js
         manifest.json
         styles.css
@@ -71,16 +71,16 @@ your-vault/
 
 ## Usage
 
-Open the Obsidian command palette and search for `ChatGPT Bridge`.
+Open the Obsidian command palette and search for `Codex Bridge`.
 
 Common commands:
 
 - `Export active note context`
-  - Exports the current note context to `_chatgpt_bridge/context/`
-- `Create ChatGPT request from active note`
+  - Exports the current note context to `_codex_bridge/context/`
+- `Create Codex request from active note`
   - Creates a request file based on the active note
 - `Append latest bridge reply to active note`
-  - Appends the newest Markdown reply from `_chatgpt_bridge/replies/`
+  - Appends the newest Markdown reply from `_codex_bridge/replies/`
 - `Create note from latest bridge reply`
   - Creates a new note from the newest reply
 - `Open bridge index`
@@ -95,13 +95,13 @@ The plugin can start a desktop-only local MCP HTTP server. It listens on `127.0.
 Recommended pairing:
 
 - Install this plugin in Obsidian desktop.
-- Install the `obsidian-connect` skill in Codex / local ChatGPT.
+- Install the `obsidian-connect` skill in Codex.
 - This plugin exposes the current vault through a local MCP endpoint.
 - The skill uses MCP tools to search, read, and write notes.
 
-This does not make your vault available to web or mobile ChatGPT. `127.0.0.1` is only visible on the same machine.
+This does not make your vault available to hosted or mobile AI clients. `127.0.0.1` is only visible on the same machine.
 
-Enable it in `Settings -> ChatGPT Bridge`:
+Enable it in `Settings -> Codex Bridge`:
 
 1. Turn on `Enable local MCP server`.
 2. Keep the default `MCP port` of `8765`, unless you need another port.
@@ -126,7 +126,7 @@ Copied MCP config shape:
 
 ```json
 {
-  "name": "obsidian-chatgpt-bridge",
+  "name": "codex-bridge",
   "transport": "streamable-http-json-rpc",
   "endpoint": "http://127.0.0.1:8765/mcp",
   "url": "http://127.0.0.1:8765/mcp",
@@ -147,9 +147,9 @@ If your MCP client only supports stdio, use the included proxy:
 ```json
 {
   "mcpServers": {
-    "obsidian-chatgpt-bridge": {
+    "codex-bridge": {
       "command": "node",
-      "args": ["/path/to/obsidian-chatgpt-bridge/codex/obsidian-mcp-proxy.js"],
+      "args": ["/path/to/codex-bridge/codex/obsidian-mcp-proxy.js"],
       "env": {
         "OBSIDIAN_MCP_PORT": "8765",
         "OBSIDIAN_MCP_TOKEN": "<token>"
@@ -168,7 +168,7 @@ If your MCP client only supports stdio, use the included proxy:
 | `write_note` | Create or overwrite a note |
 | `append_note` | Append Markdown content, creating the note if needed |
 | `list_recent_notes` | List recently modified notes |
-| `save_chat_summary` | Append a chat summary to `ChatGPT/YYYY-MM-DD.md` |
+| `save_chat_summary` | Append a chat summary to `Codex/YYYY-MM-DD.md` |
 
 Example:
 
@@ -193,7 +193,7 @@ AI summarization is optional. You do not need an API key for local file bridge w
 
 To enable summarization:
 
-1. Open `Settings -> ChatGPT Bridge`.
+1. Open `Settings -> Codex Bridge`.
 2. Set `AI API key`.
 3. Set `AI base URL`, default `https://api.openai.com/v1`.
 4. Set `AI model`, default `gpt-4o-mini`.
@@ -225,7 +225,7 @@ Summary output uses:
 
 ## Language
 
-Open `Settings -> ChatGPT Bridge`, then choose `English` or `中文`.
+Open `Settings -> Codex Bridge`, then choose `English` or `中文`.
 
 New installs default to English for the Obsidian community plugin directory. You can switch to Chinese at any time.
 
@@ -253,14 +253,14 @@ Command names are registered when Obsidian loads the plugin. Reload the plugin o
 Default folder:
 
 ```text
-_chatgpt_bridge/
+_codex_bridge/
   context/
   requests/
   replies/
   imported/
 ```
 
-You can write ChatGPT/Codex replies into `replies/`, then import them back into Obsidian with the plugin commands.
+You can write Codex replies into `replies/`, then import them back into Obsidian with the plugin commands.
 
 ## Development
 
@@ -272,7 +272,7 @@ Minimum Obsidian version: `1.5.0`
 
 ## Release
 
-For an Obsidian release, create a GitHub Release matching `manifest.json`, for example `0.5.0`, and upload:
+For a release, create a GitHub Release matching `manifest.json`, for example `0.6.0`, and upload:
 
 - `main.js`
 - `manifest.json`

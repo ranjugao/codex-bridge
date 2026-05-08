@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+- Rename the plugin to Codex Bridge and set the plugin id to `codex-bridge`.
+- Reposition the plugin around Codex MCP workflows.
+- Update the plugin description for community directory review.
+
 ## 0.5.2
 
 - Remove "Obsidian" from the plugin description for community directory review.
@@ -21,5 +27,5 @@
 
 - Add Chinese and English language switching for settings, notices, commands, exported context headings, and AI summaries.
 - Support OpenAI-compatible AI summary APIs with configurable base URL, model, and API mode.
-- Add daily summary writing to `ChatGPT/YYYY-MM-DD.md` with MD5 duplicate prevention.
+- Add daily summary writing to `Codex/YYYY-MM-DD.md` with MD5 duplicate prevention.
 - Add local bridge workflows for exporting note context, creating requests, and importing replies.

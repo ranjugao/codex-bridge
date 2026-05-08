@@ -1,12 +1,12 @@
-# Publishing ChatGPT Bridge
+# Publishing Codex Bridge
 
 This checklist publishes the plugin to GitHub and submits it to the Obsidian community plugin directory.
 
 ## Current Release
 
-- Plugin id: `chatgpt-bridge`
-- Plugin name: `ChatGPT Bridge`
-- Version: `0.5.2`
+- Plugin id: `codex-bridge`
+- Plugin name: `Codex Bridge`
+- Version: `0.6.0`
 - Minimum Obsidian version: `1.5.0`
 - Release files: `manifest.json`, `main.js`, `styles.css`
 
@@ -17,13 +17,13 @@ Create a public GitHub repository for this plugin and push this repository to it
 Recommended repository name:
 
 ```text
-obsidian-chatgpt-bridge
+codex-bridge
 ```
 
 After creating the GitHub repository:
 
 ```bash
-git remote add origin git@github.com:ranjugao/obsidian-chatgpt-bridge.git
+git remote add origin git@github.com:ranjugao/codex-bridge.git
 git push -u origin main
 ```
 
@@ -33,8 +33,8 @@ If the repository owner changes, replace that part of the URL.
 
 Create a GitHub release with:
 
-- Tag: `0.5.2`
-- Title: `0.5.2`
+- Tag: `0.6.0`
+- Title: `0.6.0`
 - Attachments:
   - `release-assets/manifest.json`
   - `release-assets/main.js`
@@ -47,13 +47,15 @@ Suggested release notes:
 ```markdown
 ## What's Changed
 
-- Remove "Obsidian" from the plugin description for community directory review.
+- Rename the plugin to Codex Bridge and set the plugin id to `codex-bridge`.
+- Reposition the plugin around Codex MCP workflows.
+- Update the plugin description for community directory review.
 
 ## Install
 
 Download `manifest.json`, `main.js`, and `styles.css`, then place them in:
 
-`.obsidian/plugins/chatgpt-bridge/`
+`.obsidian/plugins/codex-bridge/`
 ```
 
 ## 3. Submit To Obsidian
@@ -62,11 +64,11 @@ Fork `obsidianmd/obsidian-releases`, edit `community-plugins.json`, and append t
 
 ```json
 {
-  "id": "chatgpt-bridge",
-  "name": "ChatGPT Bridge",
+  "id": "codex-bridge",
+  "name": "Codex Bridge",
   "author": "LukeJiaoR",
-  "description": "Local file bridge for sharing note context with ChatGPT/Codex and importing replies.",
-  "repo": "ranjugao/obsidian-chatgpt-bridge"
+  "description": "Local bridge for using vault notes with Codex and importing replies.",
+  "repo": "ranjugao/codex-bridge"
 }
 ```
 
