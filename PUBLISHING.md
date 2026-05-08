@@ -23,11 +23,11 @@ obsidian-chatgpt-bridge
 After creating the GitHub repository:
 
 ```bash
-git remote add origin git@github.com:LukeJiaoR/obsidian-chatgpt-bridge.git
+git remote add origin git@github.com:ranjugao/obsidian-chatgpt-bridge.git
 git push -u origin main
 ```
 
-If the repository owner is not `LukeJiaoR`, replace that part of the URL.
+If the repository owner changes, replace that part of the URL.
 
 ## 2. Create GitHub Release
 
@@ -69,11 +69,11 @@ Fork `obsidianmd/obsidian-releases`, edit `community-plugins.json`, and append t
   "name": "ChatGPT Bridge",
   "author": "LukeJiaoR",
   "description": "Local file bridge for sharing Obsidian note context with ChatGPT/Codex and importing replies.",
-  "repo": "LukeJiaoR/obsidian-chatgpt-bridge"
+  "repo": "ranjugao/obsidian-chatgpt-bridge"
 }
 ```
 
-If the GitHub repository owner is different, update the `repo` value before opening the pull request.
+If the GitHub repository owner changes, update the `repo` value before opening the pull request.
 
 ## 4. Future Updates
 

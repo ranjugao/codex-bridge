@@ -3,5 +3,5 @@
   "name": "ChatGPT Bridge",
   "author": "LukeJiaoR",
   "description": "Local file bridge for sharing Obsidian note context with ChatGPT/Codex and importing replies.",
-  "repo": "LukeJiaoR/obsidian-chatgpt-bridge"
+  "repo": "ranjugao/obsidian-chatgpt-bridge"
 }
